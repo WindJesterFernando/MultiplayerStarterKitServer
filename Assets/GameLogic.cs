@@ -6,7 +6,10 @@ public class GameLogic : MonoBehaviour
 {
     void Start()
     {
+        NetworkServerProcessing.Init();
         NetworkServerProcessing.SetGameLogic(this);
+
+        DontDestroyOnLoad(gameObject);
     }
 
     void Update()
