@@ -20,6 +20,45 @@ static public class NetworkServerProcessing
 
         if (signifier == 0)
         {
+            string name = csv[1];
+            string pass = csv[2];
+
+            Debug.Log("name == " + name + ", pass == " + pass);
+
+            bool hasNameBeenFound = false;
+
+            foreach (KeyValuePair<int, ClientAccountInfo> keyValuePair in clientAccountInfoDictionary)
+            {
+                ClientAccountInfo acc = keyValuePair.Value;
+
+                if (acc.name == name)
+                {
+                    hasNameBeenFound = true;
+
+                    if(acc.password == pass)
+                    {
+                        //login
+                         SendMessageToClient("1", clientConnectionID, TransportPipeline.ReliableAndInOrder);
+                    }
+                    else
+                    {
+                        SendMessageToClient("0,Error! Password incorrect", clientConnectionID, TransportPipeline.ReliableAndInOrder);
+                    }
+
+
+
+                    // isUniqueUserName = false;
+                    // //send msg to client
+                    // SendMessageToClient("0,Error! User name has already been taken", clientConnectionID, TransportPipeline.ReliableAndInOrder);
+                    // break;
+                }
+
+            }
+
+            if (!hasNameBeenFound)
+            {
+                SendMessageToClient("0,Error! User does not exist", clientConnectionID, TransportPipeline.ReliableAndInOrder);
+            }
 
         }
         else if (signifier == 1)
@@ -61,6 +100,8 @@ static public class NetworkServerProcessing
                 }
 
                 streamWriter.Close();
+
+                SendMessageToClient("2", clientConnectionID, TransportPipeline.ReliableAndInOrder);
             }
 
 
