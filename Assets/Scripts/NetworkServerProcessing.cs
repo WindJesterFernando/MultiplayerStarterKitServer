@@ -1,8 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.IO;
-using UnityEngine.InputSystem;
 
 static public class NetworkServerProcessing
 {
@@ -26,8 +23,6 @@ static public class NetworkServerProcessing
         {
             string name = csv[1];
             string pass = csv[2];
-
-            Debug.Log("name == " + name + ", pass == " + pass);
 
             bool hasNameBeenFound = false;
 
@@ -64,8 +59,6 @@ static public class NetworkServerProcessing
             string name = csv[1];
             string pass = csv[2];
 
-            Debug.Log("name == " + name + ", pass == " + pass);
-
             bool isUniqueUserName = true;
 
             foreach (KeyValuePair<int, ClientAccountInfo> keyValuePair in clientAccountInfoDictionary)
@@ -81,23 +74,26 @@ static public class NetworkServerProcessing
                 }
             }
 
-
             if (isUniqueUserName)
             {
                 ClientAccountInfo cai = new ClientAccountInfo(name, pass);
 
                 clientAccountInfoDictionary.Add(cai.uniqueID, cai);
 
-                StreamWriter streamWriter = new StreamWriter(ClientAccountFileName);
+                #region Serialize Data and Write to HD
+
+                LinkedList<string> serializedData = new LinkedList<string>();
 
                 foreach (KeyValuePair<int, ClientAccountInfo> keyValuePair in clientAccountInfoDictionary)
                 {
                     ClientAccountInfo acc = keyValuePair.Value;
                     string serializedClientAccountInfo = acc.uniqueID + Utilities.Delineator + acc.name + Utilities.Delineator + acc.password;
-                    streamWriter.WriteLine(serializedClientAccountInfo);
+                    serializedData.AddLast(serializedClientAccountInfo);
                 }
 
-                streamWriter.Close();
+                Utilities.WriteSerializationToHD(ClientAccountFileName, serializedData);
+
+                #endregion
 
                 string toSend = ((int)ServerToClientSignal.AccountCreationSuccess).ToString();
                 SendMessageToClient(toSend, clientConnectionID, TransportPipeline.ReliableAndInOrder);
@@ -143,33 +139,18 @@ static public class NetworkServerProcessing
 
     static public void Init()
     {
-        StreamReader streamReader;
-
-        if (File.Exists(LastCreatedUniqueAccountIDFileName))
-        {
-            streamReader = new StreamReader(LastCreatedUniqueAccountIDFileName);
-            string lastCreateUniqueIDLoadedFromHD = streamReader.ReadLine();
-            lastCreatedUniqueID = int.Parse(lastCreateUniqueIDLoadedFromHD);
-            streamReader.Close();
-        }
+        LinkedList<string> lastUniqueAccountIDSerializedData = Utilities.ReadSerializationFromHD(LastCreatedUniqueAccountIDFileName);
+        if(lastUniqueAccountIDSerializedData.Count > 0)
+            lastCreatedUniqueID = int.Parse(lastUniqueAccountIDSerializedData.First.Value);
 
         clientAccountInfoDictionary = new Dictionary<int, ClientAccountInfo>();
+        LinkedList<string> clientAccountsSerializedData = Utilities.ReadSerializationFromHD(ClientAccountFileName);
 
-        if (File.Exists(ClientAccountFileName))
+        foreach (string s in clientAccountsSerializedData)
         {
-            streamReader = new StreamReader(ClientAccountFileName);
-
-            while (!streamReader.EndOfStream)
-            {
-                string line = streamReader.ReadLine();
-                string[] csv = line.Split(Utilities.Delineator);
-
-                ClientAccountInfo cai = new ClientAccountInfo(int.Parse(csv[0]), csv[1], csv[2]);
-
-                clientAccountInfoDictionary.Add(cai.uniqueID, cai);
-            }
-
-            streamReader.Close();
+            string[] csv = s.Split(Utilities.Delineator);
+            ClientAccountInfo cai = new ClientAccountInfo(int.Parse(csv[0]), csv[1], csv[2]);
+            clientAccountInfoDictionary.Add(cai.uniqueID, cai);
         }
     }
 
@@ -179,28 +160,14 @@ static public class NetworkServerProcessing
     {
         lastCreatedUniqueID++;
 
-        StreamWriter streamWriter = new StreamWriter(LastCreatedUniqueAccountIDFileName);
-        streamWriter.WriteLine(lastCreatedUniqueID);
-        streamWriter.Close();
+        LinkedList<string> serializedData = new LinkedList<string>();
+        serializedData.AddLast(lastCreatedUniqueID.ToString());
+        Utilities.WriteSerializationToHD(LastCreatedUniqueAccountIDFileName, serializedData);
 
         return lastCreatedUniqueID;
     }
 
 }
-
-#region Protocol Signifiers
-static public class ClientToServerSignifiers
-{
-    public const int asd = 1;
-}
-
-static public class ServerToClientSignifiers
-{
-    public const int asd = 1;
-}
-
-#endregion
-
 
 public class ClientAccountInfo
 {
@@ -222,133 +189,4 @@ public class ClientAccountInfo
         this.uniqueID = uniqueID;
     }
 }
-
-
-
-
-
-// public enum SaveDataIdentifier
-//     {
-//         Stats,
-//         Equipment
-//     }
-
-//     const string Delineator = ",";
-//     const string SaveFileName = "SavePartyData.txt";
-
-//     static public void SavePartyButtonPressed()
-//     {
-//         LinkedList<string> serializedPartyData = SerializePartyData();
-
-//         #region Save Serialized Party Data to HD
-
-//         StreamWriter streamWriter = new StreamWriter(SaveFileName);
-
-//         foreach (string spd in serializedPartyData)
-//         {
-//             streamWriter.WriteLine(spd);
-//         }
-
-//         streamWriter.Close();
-
-//         #endregion
-
-//     }
-
-//     static public LinkedList<string> SerializePartyData()
-//     {
-//         string line;
-
-//         LinkedList<string> serializedPartyData = new LinkedList<string>();
-
-//         foreach (PartyCharacter pc in GameContent.partyCharacters)
-//         {
-//             line = Concatenate(SaveDataIdentifier.Stats, pc.classID, pc.health, pc.mana, pc.strength, pc.agility, pc.wisdom);
-
-//             serializedPartyData.AddLast(line);
-//             foreach (int e in pc.equipment)
-//             {
-//                 line = Concatenate(SaveDataIdentifier.Equipment, e);
-//                 serializedPartyData.AddLast(line);
-//             }
-//         }
-
-//         return serializedPartyData;
-//     }
-
-//     static public string Concatenate(SaveDataIdentifier identifier, params int[] values)
-//     {
-//         string concatenatedLine = ((int)identifier).ToString();
-
-//         foreach (int v in values)
-//         {
-//             concatenatedLine = concatenatedLine + Delineator + v.ToString();
-//         }
-
-//         return concatenatedLine;
-//     }
-
-//     static public void LoadPartyButtonPressed()
-//     {
-//         GameContent.partyCharacters.Clear();
-
-//         LinkedList<string> serializedPartyData = new LinkedList<string>();
-
-//         #region Read Party Data From HD
-
-//         StreamReader streamReader = new StreamReader(SaveFileName);
-
-//         while (!streamReader.EndOfStream)
-//         {
-//             string line = streamReader.ReadLine();
-//             serializedPartyData.AddLast(line);
-//         }
-
-//         streamReader.Close();
-
-//         #endregion
-
-//         DeserializePartyData(serializedPartyData);
-
-//         GameContent.RefreshUI();
-//     }
-
-//     static public void DeserializePartyData(LinkedList<string> serializedPartyData)
-//     {
-//         LinkedList<int[]> parsedAndConvertedCSV = new LinkedList<int[]>();
-
-//         #region Parse and Convert CSV
-
-//         foreach (string line in serializedPartyData)
-//         {
-//             string[] csv = line.Split(Delineator);
-//             int[] csvAsInts = new int[csv.Length];
-
-//             for (int i = 0; i < csv.Length; i++)
-//             {
-//                 csvAsInts[i] = int.Parse(csv[i]);
-//             }
-
-//             parsedAndConvertedCSV.AddLast(csvAsInts);
-//         }
-
-//         #endregion
-
-//         foreach (int[] pData in parsedAndConvertedCSV)
-//         {
-//             int identifier = pData[0];
-
-//             if (identifier == (int)SaveDataIdentifier.Stats)
-//             {
-//                 PartyCharacter pc = new PartyCharacter(pData[1], pData[2], pData[3], pData[4], pData[5], pData[6]);
-//                 GameContent.partyCharacters.AddLast(pc);
-//             }
-//             else if (identifier == (int)SaveDataIdentifier.Equipment)
-//             {
-//                 PartyCharacter lastMadePC = GameContent.partyCharacters.Last.Value;
-//                 lastMadePC.equipment.AddLast(pData[1]);
-//             }
-//         }
-
-//     }
 
