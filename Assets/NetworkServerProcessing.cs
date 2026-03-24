@@ -10,15 +10,19 @@ static public class NetworkServerProcessing
 
     static Dictionary<int, ClientAccountInfo> clientAccountInfoDictionary;
 
+    const string ClientAccountFileName = "ClientAccounts.txt";
+    const string LastCreatedUniqueAccountIDFileName = "LastCreatedUniqueAccountID.txt";
+
+
     #region Send and Receive Data Functions
     static public void ReceivedMessageFromClient(string msg, int clientConnectionID, TransportPipeline pipeline)
     {
         Debug.Log("Network msg received =  " + msg + ", from connection id = " + clientConnectionID + ", from pipeline = " + pipeline);
 
         string[] csv = msg.Split(',');
-        int signifier = int.Parse(csv[0]);
+        ClientToServerSignal signal = (ClientToServerSignal)int.Parse(csv[0]);
 
-        if (signifier == 0)
+        if (signal == ClientToServerSignal.AccountLogin)
         {
             string name = csv[1];
             string pass = csv[2];
@@ -35,33 +39,27 @@ static public class NetworkServerProcessing
                 {
                     hasNameBeenFound = true;
 
-                    if(acc.password == pass)
+                    if (acc.password == pass)
                     {
-                        //login
-                         SendMessageToClient("1", clientConnectionID, TransportPipeline.ReliableAndInOrder);
+                        string toSend = ((int)ServerToClientSignal.AccountLoginSuccess).ToString();
+                        SendMessageToClient(toSend, clientConnectionID, TransportPipeline.ReliableAndInOrder);
                     }
                     else
                     {
-                        SendMessageToClient("0,Error! Password incorrect", clientConnectionID, TransportPipeline.ReliableAndInOrder);
+                        string toSend = ((int)ServerToClientSignal.AccountLoginPasswordError).ToString();
+                        SendMessageToClient(toSend, clientConnectionID, TransportPipeline.ReliableAndInOrder);
                     }
-
-
-
-                    // isUniqueUserName = false;
-                    // //send msg to client
-                    // SendMessageToClient("0,Error! User name has already been taken", clientConnectionID, TransportPipeline.ReliableAndInOrder);
-                    // break;
                 }
-
             }
 
             if (!hasNameBeenFound)
             {
-                SendMessageToClient("0,Error! User does not exist", clientConnectionID, TransportPipeline.ReliableAndInOrder);
+                string toSend = ((int)ServerToClientSignal.AccountLoginUserNameError).ToString();
+                SendMessageToClient(toSend, clientConnectionID, TransportPipeline.ReliableAndInOrder);
             }
 
         }
-        else if (signifier == 1)
+        else if (signal == ClientToServerSignal.AccountCreate)
         {
             string name = csv[1];
             string pass = csv[2];
@@ -77,8 +75,8 @@ static public class NetworkServerProcessing
                 if (acc.name == name)
                 {
                     isUniqueUserName = false;
-                    //send msg to client
-                    SendMessageToClient("0,Error! User name has already been taken", clientConnectionID, TransportPipeline.ReliableAndInOrder);
+                    string toSend = ((int)ServerToClientSignal.AccountCreationUserNameError).ToString();
+                    SendMessageToClient(toSend, clientConnectionID, TransportPipeline.ReliableAndInOrder);
                     break;
                 }
             }
@@ -90,43 +88,21 @@ static public class NetworkServerProcessing
 
                 clientAccountInfoDictionary.Add(cai.uniqueID, cai);
 
-                StreamWriter streamWriter = new StreamWriter("ClientAccounts.txt");
+                StreamWriter streamWriter = new StreamWriter(ClientAccountFileName);
 
                 foreach (KeyValuePair<int, ClientAccountInfo> keyValuePair in clientAccountInfoDictionary)
                 {
                     ClientAccountInfo acc = keyValuePair.Value;
-                    string serializedClientAccountInfo = acc.uniqueID + "," + acc.name + "," + acc.password;
+                    string serializedClientAccountInfo = acc.uniqueID + Utilities.Delineator + acc.name + Utilities.Delineator + acc.password;
                     streamWriter.WriteLine(serializedClientAccountInfo);
                 }
 
                 streamWriter.Close();
 
-                SendMessageToClient("2", clientConnectionID, TransportPipeline.ReliableAndInOrder);
+                string toSend = ((int)ServerToClientSignal.AccountCreationSuccess).ToString();
+                SendMessageToClient(toSend, clientConnectionID, TransportPipeline.ReliableAndInOrder);
             }
-
-
-
-            //create class to store account info
-            //package in a data structure
-            //create a unique ID
-            //use a dictionary
-            //save to HD
-            //load account info file into dictionary
-            //save/load lastCreatedUniqueID ID
-            //
-            //on account create: check if name is unique
-            //make login work
-            //clean code
-            //
-
-
         }
-        // else if (signifier == ClientToServerSignifiers.asd)
-        // {
-
-        // }
-
-        //gameLogic.DoSomething();
     }
     static public void SendMessageToClient(string msg, int clientConnectionID, TransportPipeline pipeline)
     {
@@ -169,9 +145,9 @@ static public class NetworkServerProcessing
     {
         StreamReader streamReader;
 
-        if (File.Exists("LastCreatedUniqueAccountID.txt"))
+        if (File.Exists(LastCreatedUniqueAccountIDFileName))
         {
-            streamReader = new StreamReader("LastCreatedUniqueAccountID.txt");
+            streamReader = new StreamReader(LastCreatedUniqueAccountIDFileName);
             string lastCreateUniqueIDLoadedFromHD = streamReader.ReadLine();
             lastCreatedUniqueID = int.Parse(lastCreateUniqueIDLoadedFromHD);
             streamReader.Close();
@@ -179,14 +155,14 @@ static public class NetworkServerProcessing
 
         clientAccountInfoDictionary = new Dictionary<int, ClientAccountInfo>();
 
-        if (File.Exists("ClientAccounts.txt"))
+        if (File.Exists(ClientAccountFileName))
         {
-            streamReader = new StreamReader("ClientAccounts.txt");
+            streamReader = new StreamReader(ClientAccountFileName);
 
             while (!streamReader.EndOfStream)
             {
                 string line = streamReader.ReadLine();
-                string[] csv = line.Split(",");
+                string[] csv = line.Split(Utilities.Delineator);
 
                 ClientAccountInfo cai = new ClientAccountInfo(int.Parse(csv[0]), csv[1], csv[2]);
 
@@ -203,7 +179,7 @@ static public class NetworkServerProcessing
     {
         lastCreatedUniqueID++;
 
-        StreamWriter streamWriter = new StreamWriter("LastCreatedUniqueAccountID.txt");
+        StreamWriter streamWriter = new StreamWriter(LastCreatedUniqueAccountIDFileName);
         streamWriter.WriteLine(lastCreatedUniqueID);
         streamWriter.Close();
 
@@ -246,17 +222,6 @@ public class ClientAccountInfo
         this.uniqueID = uniqueID;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
