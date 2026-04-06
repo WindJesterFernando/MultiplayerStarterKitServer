@@ -38,6 +38,9 @@ static public class NetworkServerProcessing
                     {
                         string toSend = ((int)ServerToClientSignal.AccountLoginSuccess).ToString();
                         SendMessageToClient(toSend, clientConnectionID, TransportPipeline.ReliableAndInOrder);
+
+                        //What else do we need to do here?!?!??!
+
                     }
                     else
                     {

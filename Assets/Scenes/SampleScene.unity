@@ -458,7 +458,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1457573746}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d399b8dc63b25438ab8bfde951d42e47, type: 3}
+  m_Script: {fileID: 11500000, guid: 8ae137e7387684656bdcee67b594065b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkServer
 --- !u!4 &1457573748
@@ -502,7 +502,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1939260974}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9e6e9e68f835d45fdb57025bfb8d224d, type: 3}
+  m_Script: {fileID: 11500000, guid: 5abe65c67b5194a13804abf73f6062ee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameLogic
 --- !u!4 &1939260976
