@@ -10,6 +10,8 @@ static public class NetworkServerProcessing
     const string ClientAccountFileName = "ClientAccounts.txt";
     const string LastCreatedUniqueAccountIDFileName = "LastCreatedUniqueAccountID.txt";
 
+    static Dictionary<int, ClientAccountInfo> clientConnectionIDToAccountInfoDictionary;
+
 
     #region Send and Receive Data Functions
     static public void ReceivedMessageFromClient(string msg, int clientConnectionID, TransportPipeline pipeline)
@@ -38,9 +40,7 @@ static public class NetworkServerProcessing
                     {
                         string toSend = ((int)ServerToClientSignal.AccountLoginSuccess).ToString();
                         SendMessageToClient(toSend, clientConnectionID, TransportPipeline.ReliableAndInOrder);
-
-                        //What else do we need to do here?!?!??!
-
+                        clientConnectionIDToAccountInfoDictionary.Add(clientConnectionID, acc);
                     }
                     else
                     {
@@ -102,6 +102,14 @@ static public class NetworkServerProcessing
                 SendMessageToClient(toSend, clientConnectionID, TransportPipeline.ReliableAndInOrder);
             }
         }
+        else if (signal == ClientToServerSignal.ClientTestMsg)
+        {
+            foreach(int networkConnectionID in networkServer.GetAllConnectedClientIDs())
+            {
+                SendMessageToClient("99,adfdsf", networkConnectionID, TransportPipeline.ReliableAndInOrder);
+            }
+        }
+    
     }
     static public void SendMessageToClient(string msg, int clientConnectionID, TransportPipeline pipeline)
     {
@@ -118,7 +126,9 @@ static public class NetworkServerProcessing
     }
     static public void DisconnectionEvent(int clientConnectionID)
     {
-        Debug.Log("Client disconnection, ID == " + clientConnectionID);
+        ClientAccountInfo cai = clientConnectionIDToAccountInfoDictionary[clientConnectionID];
+        Debug.Log("Client disconnection, ID == " + clientConnectionID + ", name == " + cai.name);
+        clientConnectionIDToAccountInfoDictionary.Remove(clientConnectionID);
     }
 
     #endregion
@@ -155,6 +165,8 @@ static public class NetworkServerProcessing
             ClientAccountInfo cai = new ClientAccountInfo(int.Parse(csv[0]), csv[1], csv[2]);
             clientAccountInfoDictionary.Add(cai.uniqueID, cai);
         }
+
+        clientConnectionIDToAccountInfoDictionary = new Dictionary<int, ClientAccountInfo>();
     }
 
     #endregion

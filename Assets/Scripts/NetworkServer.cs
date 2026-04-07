@@ -8,7 +8,7 @@ using System.Collections.Generic;
 public class NetworkServer : MonoBehaviour
 {
     public NetworkDriver networkDriver;
-    private NativeList<NetworkConnection> networkConnections;
+    public NativeList<NetworkConnection> networkConnections;
     NetworkPipeline reliableAndInOrderPipeline;
     NetworkPipeline nonReliableNotInOrderedPipeline;
     const ushort NetworkPort = 9001;
@@ -172,6 +172,18 @@ public class NetworkServer : MonoBehaviour
         networkDriver.EndSend(streamWriter);
 
         buffer.Dispose();
+    }
+
+    public LinkedList<int> GetAllConnectedClientIDs()
+    {
+        LinkedList<int> allConnectedIDs = new LinkedList<int>();
+
+        foreach (KeyValuePair<int, NetworkConnection> nc in idToConnectionLookup)
+        {
+            allConnectedIDs.AddLast(nc.Key);
+        }
+        
+        return allConnectedIDs;
     }
 
 }
