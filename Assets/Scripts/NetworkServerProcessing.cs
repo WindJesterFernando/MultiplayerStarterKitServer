@@ -104,12 +104,12 @@ static public class NetworkServerProcessing
         }
         else if (signal == ClientToServerSignal.ClientTestMsg)
         {
-            foreach(int networkConnectionID in networkServer.GetAllConnectedClientIDs())
+            foreach (int networkConnectionID in networkServer.GetAllConnectedClientIDs())
             {
                 SendMessageToClient("99,adfdsf", networkConnectionID, TransportPipeline.ReliableAndInOrder);
             }
         }
-    
+
     }
     static public void SendMessageToClient(string msg, int clientConnectionID, TransportPipeline pipeline)
     {
@@ -126,9 +126,14 @@ static public class NetworkServerProcessing
     }
     static public void DisconnectionEvent(int clientConnectionID)
     {
-        ClientAccountInfo cai = clientConnectionIDToAccountInfoDictionary[clientConnectionID];
-        Debug.Log("Client disconnection, ID == " + clientConnectionID + ", name == " + cai.name);
-        clientConnectionIDToAccountInfoDictionary.Remove(clientConnectionID);
+        if (clientConnectionIDToAccountInfoDictionary.ContainsKey(clientConnectionID))
+        {
+            ClientAccountInfo cai = clientConnectionIDToAccountInfoDictionary[clientConnectionID];
+            Debug.Log("Client disconnection, ID == " + clientConnectionID + ", name == " + cai.name);
+            clientConnectionIDToAccountInfoDictionary.Remove(clientConnectionID);
+        }
+        else
+            Debug.Log("Client disconnection, ID == " + clientConnectionID);
     }
 
     #endregion
@@ -153,7 +158,7 @@ static public class NetworkServerProcessing
     static public void Init()
     {
         LinkedList<string> lastUniqueAccountIDSerializedData = Utilities.ReadSerializationFromHD(LastCreatedUniqueAccountIDFileName);
-        if(lastUniqueAccountIDSerializedData.Count > 0)
+        if (lastUniqueAccountIDSerializedData.Count > 0)
             lastCreatedUniqueID = int.Parse(lastUniqueAccountIDSerializedData.First.Value);
 
         clientAccountInfoDictionary = new Dictionary<int, ClientAccountInfo>();
